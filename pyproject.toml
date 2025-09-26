@@ -14,6 +14,7 @@ dependencies = []
 [project.scripts]
 rfdetect = "rfdetect.cli:main"
 rfdetect-gui = "rfdetect.gui:main"
+rfdetect-autotrain = "rfdetect.autotrain_gui:main"
 
 [tool.setuptools.packages.find]
 include = ["rfdetect", "detection", "detection.*"]
