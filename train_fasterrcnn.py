@@ -22,17 +22,31 @@ def set_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
-def build_model(num_classes: int, backbone_weights: str = "IMAGENET", trainable_backbone_layers: int = 3):
-    # torchvision 0.17 API: weights/backbone_weights
-    if backbone_weights.upper() == "IMAGENET":
-        weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+def build_model(num_classes: int, pretrained_weights: str = "COCO", trainable_backbone_layers: int = 3):
+    """
+    Build Faster R-CNN model with pretrained weights.
+    
+    Args:
+        num_classes: Number of classes (including background)
+        pretrained_weights: "COCO" (default, best for detection), "IMAGENET" (backbone only), or "NONE"
+        trainable_backbone_layers: Number of backbone layers to fine-tune (0-5)
+    """
+    if pretrained_weights.upper() == "COCO":
+        # Use COCO-pretrained Faster R-CNN (best for detection tasks)
+        weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1
+        backbone_weights_enum = None  # Backbone already pretrained in COCO weights
+    elif pretrained_weights.upper() == "IMAGENET":
+        # Use ImageNet-pretrained backbone only
+        weights = None
         backbone_weights_enum = torchvision.models.ResNet50_Weights.IMAGENET1K_V2
-    elif backbone_weights.upper() == "NONE":
+    elif pretrained_weights.upper() == "NONE":
+        # No pretrained weights
         weights = None
         backbone_weights_enum = None
     else:
-        weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
-        backbone_weights_enum = torchvision.models.ResNet50_Weights.IMAGENET1K_V2
+        # Default to COCO
+        weights = torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights.COCO_V1
+        backbone_weights_enum = None
 
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
         weights=weights,
@@ -41,6 +55,7 @@ def build_model(num_classes: int, backbone_weights: str = "IMAGENET", trainable_
         box_detections_per_img=300,
     )
 
+    # Replace classifier head for custom number of classes
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(
         in_features, num_classes
@@ -64,7 +79,7 @@ def main():
     parser.add_argument("--lr_gamma", type=float, default=0.1)
 
     # Model/backbone
-    parser.add_argument("--backbone_weights", type=str, default="IMAGENET", choices=["IMAGENET", "NONE"])
+    parser.add_argument("--pretrained_weights", type=str, default="COCO", choices=["COCO", "IMAGENET", "NONE"])
     parser.add_argument("--trainable_backbone_layers", type=int, default=3, choices=[0,1,2,3,4,5])
     parser.add_argument("--box_score_thresh", type=float, default=0.05)
     parser.add_argument("--box_nms_thresh", type=float, default=0.5)
@@ -120,7 +135,7 @@ def main():
     num_classes = train_dataset.num_classes
     model = build_model(
         num_classes=num_classes,
-        backbone_weights=args.backbone_weights,
+        pretrained_weights=args.pretrained_weights,
         trainable_backbone_layers=args.trainable_backbone_layers,
     )
     model.roi_heads.score_thresh = args.box_score_thresh

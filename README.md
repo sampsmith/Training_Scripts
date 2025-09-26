@@ -53,7 +53,7 @@ Optimiser & scheduler
 - `--lr_gamma` (float, default: 0.1)
 
 Model/backbone
-- `--backbone_weights` (`IMAGENET`|`NONE`, default: `IMAGENET`)
+- `--pretrained_weights` (`COCO`|`IMAGENET`|`NONE`, default: `COCO`)
 - `--trainable_backbone_layers` (0–5, default: 3)
 - `--box_score_thresh` (float, default: 0.05)
 - `--box_nms_thresh` (float, default: 0.5)
@@ -94,7 +94,7 @@ python train_fasterrcnn.py \
   --data_dir /abs/path/datasets/my_coco \
   --output_dir /abs/path/outputs_long \
   --epochs 50 --batch_size 4 --lr 0.0025 \
-  --trainable_backbone_layers 5 --lr_step_size 12 --lr_gamma 0.1 \
+  --pretrained_weights COCO --trainable_backbone_layers 5 --lr_step_size 12 --lr_gamma 0.1 \
   --device cuda --amp
 ```
 

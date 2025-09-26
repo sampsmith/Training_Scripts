@@ -23,6 +23,7 @@ def train_one_epoch(
     scaler: GradScaler,
     max_norm: float = 0.0,
     gradient_accumulation_steps: int = 1,
+    progress_callback=None,
 ) -> Dict[str, float]:
     model.train()
 
@@ -30,6 +31,8 @@ def train_one_epoch(
     loss_dict_avg: Dict[str, float] = {}
 
     optimizer.zero_grad(set_to_none=True)
+    total_batches = len(data_loader)
+    
     for step, (images, targets) in enumerate(tqdm(data_loader, desc=header)):
         images = [img.to(device) for img in images]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -61,6 +64,10 @@ def train_one_epoch(
         reduced_losses = reduce_dict(loss_dict)
         for k, v in reduced_losses.items():
             loss_dict_avg[k] = loss_dict_avg.get(k, 0.0) + v
+
+        # Progress callback
+        if progress_callback is not None:
+            progress_callback(step + 1, total_batches, reduced_losses)
 
     # average over steps
     num_steps = max(1, step + 1)
