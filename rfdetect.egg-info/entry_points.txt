@@ -1,0 +1,3 @@
+[console_scripts]
+rfdetect = rfdetect.cli:main
+rfdetect-gui = rfdetect.gui:main

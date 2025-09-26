@@ -1,0 +1,12 @@
+torch>=2.2
+torchvision>=0.17
+pycocotools>=2.0.7
+opencv-python>=4.9.0.80
+numpy>=1.26
+tqdm>=4.66
+Pillow>=10.0
+matplotlib>=3.8
+pyyaml>=6.0.1
+PySide6>=6.6
+roboflow>=1.1.27
+

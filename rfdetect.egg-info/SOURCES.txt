@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+detection/__init__.py
+detection/datasets/__init__.py
+detection/datasets/coco.py
+detection/utils/__init__.py
+detection/utils/coco_eval.py
+detection/utils/engine.py
+detection/utils/transforms.py
+rfdetect/__init__.py
+rfdetect/cli.py
+rfdetect/gui.py
+rfdetect.egg-info/PKG-INFO
+rfdetect.egg-info/SOURCES.txt
+rfdetect.egg-info/dependency_links.txt
+rfdetect.egg-info/entry_points.txt
+rfdetect.egg-info/top_level.txt

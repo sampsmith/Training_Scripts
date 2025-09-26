@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rfdetect"
+version = "0.1.0"
+description = "CLI for training/evaluating/predicting Faster R-CNN (ResNet-50 FPN) on Roboflow COCO datasets"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Sam Smith" }]
+dependencies = []
+
+[project.scripts]
+rfdetect = "rfdetect.cli:main"
+rfdetect-gui = "rfdetect.gui:main"
+
+[tool.setuptools.packages.find]
+include = ["rfdetect", "detection", "detection.*"]
+
