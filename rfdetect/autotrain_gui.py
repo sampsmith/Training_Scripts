@@ -3,6 +3,9 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+# Add parent directory to Python path to find detection module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 from torch.cuda.amp import GradScaler, autocast
 import torchvision
