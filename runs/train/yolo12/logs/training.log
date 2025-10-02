@@ -1,0 +1,26 @@
+2025-09-29 22:10:21,902 - INFO - ================================================================================
+2025-09-29 22:10:21,902 - INFO - YOLO12 TRAINING SESSION STARTED
+2025-09-29 22:10:21,903 - INFO - ================================================================================
+2025-09-29 22:10:21,903 - INFO - PyTorch version: 2.7.0+cu118
+2025-09-29 22:10:23,514 - INFO - CUDA available: True
+2025-09-29 22:10:23,514 - INFO - CUDA version: 11.8
+2025-09-29 22:10:23,515 - INFO - GPU count: 1
+2025-09-29 22:10:23,516 - INFO - Current GPU: NVIDIA GeForce RTX 4060 Laptop GPU
+2025-09-29 22:10:23,517 - INFO - GPU memory: 8.6 GB
+2025-09-29 22:10:23,517 - INFO - Model: yolo12s
+2025-09-29 22:10:23,517 - INFO - Dataset: yolo12_dataset.yaml
+2025-09-29 22:10:23,517 - INFO - Image size: 960
+2025-09-29 22:10:23,518 - INFO - Batch size: 24
+2025-09-29 22:10:23,518 - INFO - Epochs: 200
+2025-09-29 22:10:23,518 - INFO - Device: auto
+2025-09-29 22:10:23,518 - INFO - ================================================================================
+2025-09-29 22:10:23,523 - INFO - To enable FlashAttention:
+2025-09-29 22:10:23,523 - INFO - 1. Install: pip install flash-attn
+2025-09-29 22:10:23,523 - INFO - 2. Requires compatible GPU (Turing, Ampere, Ada Lovelace, or Hopper)
+2025-09-29 22:10:23,535 - ERROR - Split path not found: C:\Users\samps\OneDrive\Desktop\nails_dataset\train/images
+2025-09-29 22:10:23,535 - ERROR - Training failed: Dataset validation failed
+2025-09-29 22:10:23,536 - ERROR - Traceback (most recent call last):
+  File "C:\Users\samps\OneDrive\Documents\GitHub\Training_Scripts\yolo12_train.py", line 272, in train_model
+    raise ValueError("Dataset validation failed")
+ValueError: Dataset validation failed
+

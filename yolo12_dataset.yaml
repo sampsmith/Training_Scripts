@@ -1,0 +1,7 @@
+names:
+- nail-zKU4
+- nail
+nc: 2
+path: C:\Users\samps\OneDrive\Desktop\nails_dataset
+train: train/images
+val: valid/images

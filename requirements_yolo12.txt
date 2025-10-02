@@ -1,0 +1,35 @@
+# YOLO12 Training Requirements
+# ============================
+# Optimized for local training with YOLO12
+
+# Core YOLO12
+ultralytics>=8.3.0
+
+# PyTorch (optimized for local training)
+torch>=2.2.0
+torchvision>=0.17.0
+
+# Computer Vision
+opencv-python>=4.9.0.80
+Pillow>=10.0.0
+
+# Data Processing
+numpy>=1.26.0
+pycocotools>=2.0.7
+
+# Utilities
+tqdm>=4.66.0
+matplotlib>=3.8.0
+pyyaml>=6.0.1
+seaborn>=0.12.0
+
+# Optional: FlashAttention (for YOLO12 optimization)
+# flash-attn>=2.5.0  # Uncomment if you want FlashAttention support
+
+# Optional: Advanced monitoring
+# tensorboard>=2.15.0
+# wandb>=0.16.0
+
+# Optional: Additional datasets
+# roboflow>=1.1.27
+
