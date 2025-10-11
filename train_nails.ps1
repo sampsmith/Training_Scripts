@@ -38,3 +38,5 @@ python yolo12_train.py --model yolo12s --data yolo12_dataset.yaml --epochs 200 -
 Write-Host "✅ Training completed!" -ForegroundColor Green
 Write-Host "📁 Results saved to: runs/train/yolo12" -ForegroundColor Yellow
 
+
+

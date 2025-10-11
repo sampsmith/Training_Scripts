@@ -1,0 +1,38 @@
+# RT-DETR Training Requirements
+# Real-Time Detection Transformer dependencies
+
+# Core Dependencies
+ultralytics>=8.3.0
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.23.0
+opencv-python>=4.8.0
+pillow>=9.5.0
+pyyaml>=6.0
+
+# Data Processing
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Progress and Logging
+tqdm>=4.65.0
+tensorboard>=2.13.0
+
+# Optional: TensorRT for optimal inference performance
+# tensorrt>=8.6.0  # Uncomment if using TensorRT acceleration
+
+# Optional: For advanced export formats
+# onnx>=1.14.0
+# onnxruntime>=1.15.0
+# openvino>=2023.0.0
+
+# Utilities
+psutil>=5.9.0
+requests>=2.31.0
+
+# Note: RT-DETR works best with:
+# - NVIDIA GPU with CUDA support
+# - TensorRT for deployment (recommended)
+# - Mixed precision training support
+

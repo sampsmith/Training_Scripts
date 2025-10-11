@@ -1,0 +1,20 @@
+# Deep SVDD One-Class Classification GUI Requirements
+# PySide6 application dependencies
+
+# Core Dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+
+# GUI Framework
+PySide6>=6.5.0
+
+# Visualisation
+matplotlib>=3.7.0
+numpy>=1.23.0
+
+# Image Processing
+Pillow>=9.5.0  # Required for image loading
+
+# Optional: For better performance
+# psutil>=5.9.0  # System monitoring
+
