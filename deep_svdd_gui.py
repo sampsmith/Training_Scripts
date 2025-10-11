@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QSpinBox, QDoubleSpinBox,
     QProgressBar, QTextEdit, QFileDialog, QGroupBox, QGridLayout,
-    QMessageBox, QTabWidget, QComboBox, QCheckBox
+    QMessageBox, QTabWidget, QComboBox, QCheckBox, QListWidget
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QFont, QPixmap, QImage
@@ -300,29 +300,90 @@ class DeepSVDDGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.worker: Optional[TrainingWorker] = None
+        
+        # Inference state
+        self.inference_model = None
+        self.inference_center = None
+        self.inference_config = None
+        self.inference_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.current_test_image = None
+        self.current_test_image_path = None
+        
         self.init_ui()
         
     def init_ui(self):
         """Initialise user interface"""
         self.setWindowTitle("Deep SVDD One-Class Classification")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1400, 900)
         
         # Main widget and layout
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        main_layout = QHBoxLayout()
+        main_layout = QVBoxLayout()
         main_widget.setLayout(main_layout)
         
-        # Left panel - Configuration
-        left_panel = self.create_config_panel()
-        main_layout.addWidget(left_panel, stretch=1)
+        # Title
+        title = QLabel("Deep SVDD One-Class Classification")
+        title.setFont(QFont("Arial", 20, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("color: #ffffff; background-color: transparent; padding: 10px;")
+        main_layout.addWidget(title)
         
-        # Right panel - Monitoring
-        right_panel = self.create_monitor_panel()
-        main_layout.addWidget(right_panel, stretch=2)
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                border: 2px solid #3a3a3a;
+                background-color: #1e1e1e;
+            }
+            QTabBar::tab {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                padding: 10px 20px;
+                margin-right: 2px;
+                border: 2px solid #3a3a3a;
+                border-bottom: none;
+                border-top-left-radius: 5px;
+                border-top-right-radius: 5px;
+            }
+            QTabBar::tab:selected {
+                background-color: #0d7377;
+                color: #ffffff;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover {
+                background-color: #3a3a3a;
+            }
+        """)
+        
+        # Training tab
+        training_tab = self.create_training_tab()
+        self.tab_widget.addTab(training_tab, "🎓 Training")
+        
+        # Inference tab
+        inference_tab = self.create_inference_tab()
+        self.tab_widget.addTab(inference_tab, "🔍 Inference")
+        
+        main_layout.addWidget(self.tab_widget)
         
         # Apply stylesheet
         self.apply_stylesheet()
+    
+    def create_training_tab(self) -> QWidget:
+        """Create the training tab"""
+        tab = QWidget()
+        layout = QHBoxLayout()
+        tab.setLayout(layout)
+        
+        # Left panel - Configuration
+        left_panel = self.create_config_panel()
+        layout.addWidget(left_panel, stretch=1)
+        
+        # Right panel - Monitoring
+        right_panel = self.create_monitor_panel()
+        layout.addWidget(right_panel, stretch=2)
+        
+        return tab
         
     def create_config_panel(self) -> QWidget:
         """Create configuration panel"""
@@ -567,6 +628,144 @@ class DeepSVDDGUI(QMainWindow):
         layout.addWidget(log_group, stretch=1)
         
         return panel
+    
+    def create_inference_tab(self) -> QWidget:
+        """Create the inference tab"""
+        tab = QWidget()
+        layout = QHBoxLayout()
+        tab.setLayout(layout)
+        
+        # Left panel - Controls
+        left_panel = QWidget()
+        left_layout = QVBoxLayout()
+        left_panel.setLayout(left_layout)
+        
+        # Model loading
+        model_group = QGroupBox("Model Loading")
+        model_layout = QGridLayout()
+        model_group.setLayout(model_layout)
+        
+        model_layout.addWidget(QLabel("Model Path:"), 0, 0)
+        self.inf_model_path_input = QLineEdit("deep_svdd_nail.pth")
+        model_layout.addWidget(self.inf_model_path_input, 0, 1)
+        self.inf_browse_model_btn = QPushButton("Browse")
+        self.inf_browse_model_btn.clicked.connect(self.browse_inference_model)
+        model_layout.addWidget(self.inf_browse_model_btn, 0, 2)
+        
+        self.inf_load_model_btn = QPushButton("Load Model")
+        self.inf_load_model_btn.clicked.connect(self.load_inference_model)
+        self.inf_load_model_btn.setStyleSheet("background-color: #0d7377; padding: 10px; font-weight: bold;")
+        model_layout.addWidget(self.inf_load_model_btn, 1, 0, 1, 3)
+        
+        self.inf_model_status = QLabel("No model loaded")
+        self.inf_model_status.setStyleSheet("color: #f39c12; font-weight: bold;")
+        model_layout.addWidget(self.inf_model_status, 2, 0, 1, 3)
+        
+        left_layout.addWidget(model_group)
+        
+        # Image selection
+        image_group = QGroupBox("Test Image")
+        image_layout = QVBoxLayout()
+        image_group.setLayout(image_layout)
+        
+        btn_layout = QHBoxLayout()
+        self.inf_load_image_btn = QPushButton("Load Image")
+        self.inf_load_image_btn.clicked.connect(self.load_test_image)
+        btn_layout.addWidget(self.inf_load_image_btn)
+        
+        self.inf_load_folder_btn = QPushButton("Load Folder")
+        self.inf_load_folder_btn.clicked.connect(self.load_test_folder)
+        btn_layout.addWidget(self.inf_load_folder_btn)
+        image_layout.addLayout(btn_layout)
+        
+        self.inf_image_list = QListWidget()
+        self.inf_image_list.setMaximumHeight(150)
+        self.inf_image_list.currentRowChanged.connect(self.on_test_image_selected)
+        image_layout.addWidget(self.inf_image_list)
+        
+        left_layout.addWidget(image_group)
+        
+        # Threshold settings
+        threshold_group = QGroupBox("Detection Threshold")
+        threshold_layout = QGridLayout()
+        threshold_group.setLayout(threshold_layout)
+        
+        threshold_layout.addWidget(QLabel("Threshold:"), 0, 0)
+        self.inf_threshold_input = QDoubleSpinBox()
+        self.inf_threshold_input.setRange(0.0, 1000.0)
+        self.inf_threshold_input.setValue(10.0)
+        self.inf_threshold_input.setDecimals(2)
+        self.inf_threshold_input.setSingleStep(0.5)
+        self.inf_threshold_input.valueChanged.connect(self.update_inference_classification)
+        threshold_layout.addWidget(self.inf_threshold_input, 0, 1)
+        
+        threshold_info = QLabel("Lower = stricter\nHigher = more lenient")
+        threshold_info.setStyleSheet("color: #888888; font-size: 10px; font-style: italic;")
+        threshold_layout.addWidget(threshold_info, 1, 0, 1, 2)
+        
+        left_layout.addWidget(threshold_group)
+        
+        # Results
+        results_group = QGroupBox("Results")
+        results_layout = QVBoxLayout()
+        results_group.setLayout(results_layout)
+        
+        self.inf_distance_label = QLabel("Distance: N/A")
+        self.inf_distance_label.setFont(QFont("Arial", 14, QFont.Bold))
+        self.inf_distance_label.setStyleSheet("color: #e0e0e0; padding: 10px;")
+        self.inf_distance_label.setAlignment(Qt.AlignCenter)
+        results_layout.addWidget(self.inf_distance_label)
+        
+        self.inf_classification_label = QLabel("Classification: N/A")
+        self.inf_classification_label.setFont(QFont("Arial", 16, QFont.Bold))
+        self.inf_classification_label.setAlignment(Qt.AlignCenter)
+        self.inf_classification_label.setStyleSheet("padding: 15px; border-radius: 5px;")
+        results_layout.addWidget(self.inf_classification_label)
+        
+        left_layout.addWidget(results_group)
+        
+        # Batch inference
+        batch_group = QGroupBox("Batch Inference")
+        batch_layout = QVBoxLayout()
+        batch_group.setLayout(batch_layout)
+        
+        self.inf_batch_btn = QPushButton("Run Batch Inference on All Images")
+        self.inf_batch_btn.clicked.connect(self.run_batch_inference)
+        self.inf_batch_btn.setStyleSheet("background-color: #8e44ad; padding: 10px;")
+        batch_layout.addWidget(self.inf_batch_btn)
+        
+        self.inf_batch_results = QTextEdit()
+        self.inf_batch_results.setReadOnly(True)
+        self.inf_batch_results.setMaximumHeight(150)
+        batch_layout.addWidget(self.inf_batch_results)
+        
+        left_layout.addWidget(batch_group)
+        
+        left_layout.addStretch()
+        layout.addWidget(left_panel, stretch=1)
+        
+        # Right panel - Image display
+        right_panel = QWidget()
+        right_layout = QVBoxLayout()
+        right_panel.setLayout(right_layout)
+        
+        self.inf_image_display = QLabel()
+        self.inf_image_display.setAlignment(Qt.AlignCenter)
+        self.inf_image_display.setMinimumSize(600, 600)
+        self.inf_image_display.setStyleSheet("""
+            QLabel {
+                background-color: #2d2d2d;
+                border: 2px solid #3a3a3a;
+                border-radius: 5px;
+                color: #e0e0e0;
+            }
+        """)
+        self.inf_image_display.setText("Load a model and image to begin testing")
+        right_layout.addWidget(self.inf_image_display)
+        
+        layout.addWidget(right_panel, stretch=2)
+        
+        return tab
     
     def apply_stylesheet(self):
         """Apply custom dark theme stylesheet"""
@@ -845,6 +1044,247 @@ class DeepSVDDGUI(QMainWindow):
         self.log_text.verticalScrollBar().setValue(
             self.log_text.verticalScrollBar().maximum()
         )
+    
+    # Inference methods
+    def browse_inference_model(self):
+        """Browse for trained model"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Trained Model",
+            "",
+            "PyTorch Model (*.pth *.pt)"
+        )
+        if file_path:
+            self.inf_model_path_input.setText(file_path)
+    
+    def load_inference_model(self):
+        """Load trained Deep SVDD model"""
+        model_path = self.inf_model_path_input.text()
+        
+        if not os.path.exists(model_path):
+            QMessageBox.warning(self, "Error", f"Model file not found: {model_path}")
+            return
+        
+        try:
+            # Load checkpoint
+            checkpoint = torch.load(model_path, map_location=self.inference_device)
+            
+            # Get config
+            self.inference_config = checkpoint['config']
+            self.inference_center = checkpoint['center'].to(self.inference_device)
+            
+            # Recreate model
+            backbone_name = self.inference_config['backbone']
+            embedding_dim = self.inference_config['embedding_dim']
+            
+            if backbone_name == 'ResNet18':
+                self.inference_model = models.resnet18(pretrained=False)
+                self.inference_model.fc = nn.Linear(self.inference_model.fc.in_features, embedding_dim)
+            elif backbone_name == 'ResNet34':
+                self.inference_model = models.resnet34(pretrained=False)
+                self.inference_model.fc = nn.Linear(self.inference_model.fc.in_features, embedding_dim)
+            elif backbone_name == 'ResNet50':
+                self.inference_model = models.resnet50(pretrained=False)
+                self.inference_model.fc = nn.Linear(self.inference_model.fc.in_features, embedding_dim)
+            else:
+                self.inference_model = models.resnet18(pretrained=False)
+                self.inference_model.fc = nn.Linear(self.inference_model.fc.in_features, embedding_dim)
+            
+            # Load weights
+            self.inference_model.load_state_dict(checkpoint['model_state_dict'])
+            self.inference_model.to(self.inference_device)
+            self.inference_model.eval()
+            
+            self.inf_model_status.setText(f"Model loaded: {backbone_name}")
+            self.inf_model_status.setStyleSheet("color: #27ae60; font-weight: bold;")
+            
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Model loaded successfully!\n\nBackbone: {backbone_name}\nEmbedding dim: {embedding_dim}"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load model: {str(e)}")
+            self.inf_model_status.setText("Failed to load model")
+            self.inf_model_status.setStyleSheet("color: #e74c3c; font-weight: bold;")
+    
+    def load_test_image(self):
+        """Load a single test image"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Test Image",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.tiff)"
+        )
+        
+        if file_path:
+            self.test_image_list = [file_path]
+            self.inf_image_list.clear()
+            self.inf_image_list.addItem(os.path.basename(file_path))
+            self.inf_image_list.setCurrentRow(0)
+            self.process_test_image(file_path)
+    
+    def load_test_folder(self):
+        """Load all images from a folder"""
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Test Folder")
+        
+        if folder_path:
+            extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
+            self.test_image_list = []
+            
+            for ext in extensions:
+                self.test_image_list.extend(glob.glob(os.path.join(folder_path, ext)))
+                self.test_image_list.extend(glob.glob(os.path.join(folder_path, ext.upper())))
+            
+            self.test_image_list.sort()
+            
+            if self.test_image_list:
+                self.inf_image_list.clear()
+                for img_path in self.test_image_list:
+                    self.inf_image_list.addItem(os.path.basename(img_path))
+                self.inf_image_list.setCurrentRow(0)
+                self.process_test_image(self.test_image_list[0])
+            else:
+                QMessageBox.warning(self, "No Images", "No images found in the selected folder.")
+    
+    def on_test_image_selected(self, index: int):
+        """Handle test image selection"""
+        if hasattr(self, 'test_image_list') and 0 <= index < len(self.test_image_list):
+            self.process_test_image(self.test_image_list[index])
+    
+    def process_test_image(self, image_path: str):
+        """Process a test image and compute distance"""
+        if self.inference_model is None:
+            QMessageBox.warning(self, "No Model", "Please load a trained model first.")
+            return
+        
+        try:
+            self.current_test_image_path = image_path
+            
+            # Load and display image
+            image = Image.open(image_path).convert('RGB')
+            self.current_test_image = image
+            
+            # Display image
+            pixmap = QPixmap(image_path)
+            scaled_pixmap = pixmap.scaled(
+                self.inf_image_display.width() - 20,
+                self.inf_image_display.height() - 20,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.inf_image_display.setPixmap(scaled_pixmap)
+            
+            # Preprocess for model
+            img_size = self.inference_config['img_size']
+            transform = transforms.Compose([
+                transforms.Resize((img_size, img_size)),
+                transforms.ToTensor(),
+            ])
+            
+            image_tensor = transform(image).unsqueeze(0).to(self.inference_device)
+            
+            # Run inference
+            with torch.no_grad():
+                embedding = self.inference_model(image_tensor)
+                distance = torch.sum((embedding - self.inference_center) ** 2).item()
+            
+            # Display results
+            self.inf_distance_label.setText(f"Distance: {distance:.4f}")
+            
+            # Classify based on threshold
+            self.current_distance = distance
+            self.update_inference_classification()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to process image: {str(e)}")
+    
+    def update_inference_classification(self):
+        """Update classification based on threshold"""
+        if not hasattr(self, 'current_distance'):
+            return
+        
+        threshold = self.inf_threshold_input.value()
+        distance = self.current_distance
+        
+        if distance < threshold:
+            self.inf_classification_label.setText("✓ NORMAL")
+            self.inf_classification_label.setStyleSheet(
+                "color: #ffffff; background-color: #27ae60; padding: 15px; "
+                "border-radius: 5px; font-size: 18px;"
+            )
+        else:
+            self.inf_classification_label.setText("✗ ANOMALY")
+            self.inf_classification_label.setStyleSheet(
+                "color: #ffffff; background-color: #e74c3c; padding: 15px; "
+                "border-radius: 5px; font-size: 18px;"
+            )
+    
+    def run_batch_inference(self):
+        """Run inference on all loaded images"""
+        if self.inference_model is None:
+            QMessageBox.warning(self, "No Model", "Please load a trained model first.")
+            return
+        
+        if not hasattr(self, 'test_image_list') or not self.test_image_list:
+            QMessageBox.warning(self, "No Images", "Please load test images first.")
+            return
+        
+        threshold = self.inf_threshold_input.value()
+        img_size = self.inference_config['img_size']
+        
+        transform = transforms.Compose([
+            transforms.Resize((img_size, img_size)),
+            transforms.ToTensor(),
+        ])
+        
+        self.inf_batch_results.clear()
+        self.inf_batch_results.append("=== Batch Inference Results ===\n")
+        
+        normal_count = 0
+        anomaly_count = 0
+        
+        try:
+            for image_path in self.test_image_list:
+                filename = os.path.basename(image_path)
+                
+                # Load and process image
+                image = Image.open(image_path).convert('RGB')
+                image_tensor = transform(image).unsqueeze(0).to(self.inference_device)
+                
+                # Run inference
+                with torch.no_grad():
+                    embedding = self.inference_model(image_tensor)
+                    distance = torch.sum((embedding - self.inference_center) ** 2).item()
+                
+                # Classify
+                if distance < threshold:
+                    classification = "NORMAL"
+                    normal_count += 1
+                    color = "green"
+                else:
+                    classification = "ANOMALY"
+                    anomaly_count += 1
+                    color = "red"
+                
+                self.inf_batch_results.append(f"{filename}: {distance:.4f} → {classification}")
+            
+            self.inf_batch_results.append(f"\n=== Summary ===")
+            self.inf_batch_results.append(f"Total images: {len(self.test_image_list)}")
+            self.inf_batch_results.append(f"Normal: {normal_count}")
+            self.inf_batch_results.append(f"Anomalies: {anomaly_count}")
+            self.inf_batch_results.append(f"Threshold: {threshold}")
+            
+            QMessageBox.information(
+                self,
+                "Batch Complete",
+                f"Processed {len(self.test_image_list)} images\n\n"
+                f"Normal: {normal_count}\nAnomalies: {anomaly_count}"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Batch inference failed: {str(e)}")
 
 
 def main():
